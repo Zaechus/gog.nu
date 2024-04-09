@@ -70,7 +70,7 @@ def "main clean" [dir?: string] {
   if $dir != null {
     cd $dir
   }
-  rm -rf goggame-*.* DOSBOX __redist app commonappdata Customer_support.htm
+  rm -rf goggame-*.* DOSBOX __redist app commonappdata Customer_support.htm webcache.zip
 }
 
 def main [] {
