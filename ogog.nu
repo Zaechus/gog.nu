@@ -62,7 +62,7 @@ def "main download" [
 
 # extract a gog installer with innoextract
 def "main extract" [file: string] {
-  innoextract -gm -d ($file | str replace -ra '^setup_|_\..*_|_?\(.*\)|\.exe$' '') $file
+  innoextract -gm --default-language en-US -d ($file | str replace -ra '^setup_|_\..*_|_?\(.*\)|\.exe$' '') $file
 }
 
 # remove useless gog files from a directory
