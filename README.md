@@ -1,2 +1,2 @@
-# ogog
+# gog.nu
 wip gog downloader
