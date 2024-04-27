@@ -23,15 +23,19 @@ def "main token new" [code: string] {
 
 # refresh the auth token
 def "main token refresh" [] {
-    http get --raw $'https://auth.gog.com/token?client_id=($client_id)&client_secret=($client_secret)&grant_type=refresh_token&refresh_token=(open $token_file | get refresh_token)&redirect_uri=($redirect_uri)' | save -f $token_file
-    chmod 600 $token_file
+  http get --raw $'https://auth.gog.com/token?client_id=($client_id)&client_secret=($client_secret)&grant_type=refresh_token&refresh_token=(open $token_file | get refresh_token)&redirect_uri=($redirect_uri)' | save -f $token_file
+  chmod 600 $token_file
 }
 
-# download a offline installers
+# download offline installers
 def "main download" [
   ...search: string
   --id: string # install using the game id
 ] {
+  if ((ls $token_file | get 0.modified) - (date now)) > (open $token_file | get expires_in | into duration -u sec) {
+    main token refresh
+  }
+
   let search = $search | str join ' '
   let results = http get --headers [Authorization $'Bearer (open $token_file | get access_token)'] $'https://embed.gog.com/account/getFilteredProducts?mediaType=1&search=($search)' | get products | select id title
   let gameid = if $id != null {
