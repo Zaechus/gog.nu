@@ -75,9 +75,14 @@ def "main download" [
   }
 }
 
+# get the folder name for a setup file
+def "main name" [file: string] {
+  $file | str replace -ra '^(gog|setup)_|_v\d+_.*$|_\d+\-\d+_|_\d*\..*|_?\(.*\)|\.(bin|exe)$|_\d{1}[_.].*\.sh$' '' | str replace -a '_' '-' | str replace -ra '-+' '-'
+}
+
 # extract a gog installer with innoextract
 def "main extract" [file: string] {
-  innoextract -gm --default-language en-US -d ($file | str replace -ra '^setup_|_\..*_|_?\(.*\)|\.exe$' '') $file
+  innoextract -gm --default-language en-US -d (main name $file) $file
 }
 
 # remove useless gog files from a directory
