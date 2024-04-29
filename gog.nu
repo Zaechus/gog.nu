@@ -31,8 +31,9 @@ def "main token refresh" [] {
 def "main download" [
   ...search: string
   --id: string # install using the game id
+  -n: int # install the nth game result
 ] {
-  if ((ls $token_file | get 0.modified) - (date now)) > (open $token_file | get expires_in | into duration -u sec) {
+  if ((date now) - (ls $token_file | get 0.modified)) > (open $token_file | get expires_in | into duration -u sec) {
     main token refresh
   }
 
@@ -40,6 +41,8 @@ def "main download" [
   let results = http get --headers [Authorization $'Bearer (open $token_file | get access_token)'] $'https://embed.gog.com/account/getFilteredProducts?mediaType=1&search=($search)' | get products | select id title
   let gameid = if $id != null {
     $id
+  } else if $n != null {
+    $results.id | get $n
   } else if ($results | length) > 1 {
     return $results
   } else if ($results | length) == 0 {
@@ -63,7 +66,10 @@ def "main download" [
       for url in $urls {
         echo $'Downloading https://gog.com($url)'
         let location = http head --redirect-mode manual --headers [Authorization $'Bearer (open $token_file | get access_token)'] $'https://embed.gog.com($url)' | where name == "location" | get 0.value
-        http get --headers [Authorization $'Bearer (open $token_file | get access_token)'] $location | save -p ($location | url parse | get params.path | path basename)
+        let filename = $location | url parse | get params.path | path basename
+        let tmpfile = $'($filename).tmp'
+        http get --headers [Authorization $'Bearer (open $token_file | get access_token)'] $location | save -p $tmpfile
+        mv -n $tmpfile $filename
       }
     }
   }
