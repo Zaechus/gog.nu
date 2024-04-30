@@ -81,8 +81,38 @@ def "main name" [file: string] {
 }
 
 # extract a gog installer with innoextract
-def "main extract" [file: string] {
-  innoextract -gm --default-language en-US -d (main name $file) $file
+def "main extract" [
+  file: string
+  --no-clean # Do not remove useless files after extraction
+] {
+  let dir = main name $file
+  innoextract -gm --default-language en-US -d $dir $file
+  if not $no_clean {
+    main clean $dir
+  }
+}
+
+def mv_support_files [d: string] {
+  let dname = ($d | path split | skip 2 | path join)
+  let found = (ls ./**/* | where type == dir | find -v __support | find -ir $'^($dname)$' | get name)
+  let dest = if ($found | length) > 0 {
+    $found.0
+  } else {
+    $'./($dname)'
+  }
+  for f in (ls $d) {
+    if $f.type == file {
+      mv -v $f.name $dest
+    } else if $f.type == dir {
+      let fname = ($f.name | path split | skip 2 | path join)
+      let ffound = (ls $dest | where type == dir | find -ir $'^($fname)$' | get name)
+      if ($ffound | length) == 0 {
+        mv -v $f.name $dest
+      } else {
+        mv_support_files $f.name
+      }
+    }
+  }
 }
 
 # remove useless gog files from a directory
@@ -90,7 +120,12 @@ def "main clean" [dir?: string] {
   if $dir != null {
     cd $dir
   }
-  rm -rf goggame-*.* DOSBOX __redist app commonappdata Customer_support.htm webcache.zip
+  rm -rf goggame-*.* DOSBOX __redist app commonappdata Customer_support.htm webcache.zip gfw_high*.ico gog.ico support.ico
+
+  if ('__support/save' | path exists) {
+    mv_support_files __support/save
+  }
+  rm -rf __support
 }
 
 def main [] {
