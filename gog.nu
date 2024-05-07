@@ -32,6 +32,7 @@ def "main download" [
   ...search: string
   --id: string # install using the game id
   -n: int # install the nth game result
+  --skip-linux # skip checking for linux files
 ] {
   if ((date now) - (ls $token_file | get 0.modified)) > (open $token_file | get expires_in | into duration -u sec) {
     main token refresh
@@ -55,7 +56,7 @@ def "main download" [
 
   for download in $response.downloads {
     if 'English' in $download {
-      let urls = if 'linux' in $download.1 {
+      let urls = if not $skip_linux and 'linux' in $download.1 {
         $download.1.linux.manualUrl
       } else if 'windows' in $download.1 {
         $download.1.windows.manualUrl
