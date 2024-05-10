@@ -123,6 +123,10 @@ def "main clean" [dir?: string] {
   }
   rm -rf goggame-*.* DOSBOX __redist app commonappdata Customer_support.htm webcache.zip gfw_high*.ico gog.ico support.ico
 
+  if ('__support/app' | path exists) {
+    rm -f __support/app/dosbox*.conf
+    mv_support_files __support/app
+  }
   if ('__support/save' | path exists) {
     mv_support_files __support/save
   }
