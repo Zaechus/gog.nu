@@ -84,10 +84,10 @@ def "main name" [file: string] {
 # extract a gog installer with innoextract
 def "main extract" [
   file: string
-  --no-clean # Do not remove useless files after extraction
+  --no-clean # Do not clean extracted files
 ] {
   let dir = main name $file
-  innoextract -gm --default-language en-US -d $dir $file
+  innoextract -gmp --default-language en-US -d $dir $file
   if not $no_clean {
     main clean $dir
   }
@@ -121,7 +121,11 @@ def "main clean" [dir?: string] {
   if $dir != null {
     cd $dir
   }
-  rm -rf goggame-*.* DOSBOX __redist app commonappdata Customer_support.htm webcache.zip gfw_high*.ico gog.ico support.ico
+  if ('app' | path exists) {
+    mv app/* ./
+    rm -rf app
+  }
+  rm -rf Customer_support.htm DOSBOX __redist commonappdata dosbox*conf gfw_high*.ico gog.ico goggame-*.* support.ico webcache.zip
 
   if ('__support/app' | path exists) {
     rm -f __support/app/dosbox*.conf
