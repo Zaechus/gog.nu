@@ -1,4 +1,5 @@
 #!/usr/bin/env nu
+
 let client_id = "46899977096215655"
 let redirect_uri = "https://embed.gog.com/on_login_success?origin=client" | url encode
 let client_secret = "9d85c43b1482497dbbce61f6e4aa173a433796eeae2ca8c5f6129f2dc4de46d9"
@@ -65,12 +66,16 @@ def "main download" [
       }
 
       for url in $urls {
-        echo $'Downloading https://gog.com($url)'
+        print $'Downloading https://gog.com($url)'
         let location = http head --redirect-mode manual --headers [Authorization $'Bearer (open $token_file | get access_token)'] $'https://embed.gog.com($url)' | where name == "location" | get 0.value
         let filename = $location | url parse | get params.path | path basename
-        let tmpfile = $'($filename).tmp'
-        http get --headers [Authorization $'Bearer (open $token_file | get access_token)'] $location | save -p $tmpfile
-        mv -n $tmpfile $filename
+        if not ($filename | path exists) {
+          let tmpfile = $'($filename).tmp'
+          http get --headers [Authorization $'Bearer (open $token_file | get access_token)'] $location | save -fp $tmpfile
+          mv -n $tmpfile $filename
+        } else {
+          print $'($filename) already exists. Skipping.'
+        }
       }
     }
   }
