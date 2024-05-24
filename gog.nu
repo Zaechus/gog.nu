@@ -136,7 +136,7 @@ def "main clean" [dir?: string] {
     mv app/* ./
     rm -rf app
   }
-  rm -rf Customer_support.htm DOSBOX __redist commonappdata dosbox*conf gfw_high*.ico gog.ico goggame-*.* support.ico webcache.zip
+  rm -rf Customer_support.htm DOSBOX __redist commonappdata dosbox*conf gfw_high*.ico gog.ico goggame-*.* goglog.ini support.ico webcache.zip
 
   if ('__support/app' | path exists) {
     rm -f __support/app/dosbox*.conf
