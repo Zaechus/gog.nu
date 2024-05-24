@@ -12,7 +12,7 @@ def "main login" [] {
   let response_type = "code"
   let layout = "client2"
 
-  echo $'https://auth.gog.com/auth?client_id=($client_id)&redirect_uri=($redirect_uri)&response_type=($response_type)&layout=($layout)'
+  print $'https://auth.gog.com/auth?client_id=($client_id)&redirect_uri=($redirect_uri)&response_type=($response_type)&layout=($layout)'
 }
 
 # generate a new auth token
@@ -35,6 +35,11 @@ def "main download" [
   -n: int # install the nth game result
   --skip-linux # skip checking for linux files
 ] {
+  if not ($token_file | path exists) {
+    main login
+    main token new (input 'code=')
+  }
+
   if ((date now) - (ls $token_file | get 0.modified)) > (open $token_file | get expires_in | into duration -u sec) {
     main token refresh
   }
@@ -121,11 +126,12 @@ def mv_support_files [d: string] {
   }
 }
 
-# remove useless gog files from a directory
+# fix extracted gog game files in a directory
 def "main clean" [dir?: string] {
   if $dir != null {
     cd $dir
   }
+
   if ('app' | path exists) {
     mv app/* ./
     rm -rf app
