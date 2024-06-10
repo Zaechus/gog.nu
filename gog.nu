@@ -34,6 +34,7 @@ def "main download" [
   --id: string # install using the game id
   -n: int # install the nth game result
   --skip-linux # skip checking for linux files
+  --all # also install patch files if available
 ] {
   if not ($token_file | path exists) {
     main login
@@ -61,11 +62,15 @@ def "main download" [
   let response = http get --headers [Authorization $'Bearer (open $token_file | get access_token)'] $'https://embed.gog.com/account/gameDetails/($gameid).json'
 
   for download in $response.downloads {
-    if 'English' in $download {
+    if $download.0 == 'English' {
       let urls = if not $skip_linux and 'linux' in $download.1 {
         $download.1.linux.manualUrl
       } else if 'windows' in $download.1 {
-        $download.1.windows.manualUrl
+        if $all {
+          $download.1.windows.manualUrl
+        } else {
+          $download.1.windows | where manualUrl !~ 'patch[0-9]$' | get manualUrl
+        }
       } else {
         continue
       }
