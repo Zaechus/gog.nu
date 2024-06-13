@@ -28,14 +28,8 @@ def "main token refresh" [] {
   chmod 600 $token_file
 }
 
-# download offline installers
-def "main download" [
-  ...search: string
-  --id: string # install using the game id
-  -n: int # install the nth game result
-  --skip-linux # skip checking for linux files
-  --all # also install patch files if available
-] {
+# search games
+def "main search" [...search: string] {
   if not ($token_file | path exists) {
     main login
     main token new (input 'code=')
@@ -46,17 +40,32 @@ def "main download" [
   }
 
   let search = $search | str join ' '
-  let results = http get --headers [Authorization $'Bearer (open $token_file | get access_token)'] $'https://embed.gog.com/account/getFilteredProducts?mediaType=1&search=($search)' | get products | select id title
+  return (http get --headers [Authorization $'Bearer (open $token_file | get access_token)'] $'https://embed.gog.com/account/getFilteredProducts?mediaType=1&search=($search)' | get products | select id title)
+}
+
+# download offline installers
+def "main download" [
+  ...search: string
+  --id: string # install using the game id
+  -n: int # install the nth game result
+  --skip-linux # skip checking for linux files
+  --all # also install patch files if available
+] {
   let gameid = if $id != null {
     $id
-  } else if $n != null {
-    $results.id | get $n
-  } else if ($results | length) > 1 {
-    return $results
-  } else if ($results | length) == 0 {
-    return "No matches."
   } else {
-    $results.0.id
+    let search = $search | str join ' '
+    let results = main search $search
+
+    if $n != null {
+      $results.id.$n
+    } else if ($results | length) > 1 {
+      return $results
+    } else if ($results | length) == 0 {
+      return "No matches."
+    } else {
+      $results.0.id
+    }
   }
 
   let response = http get --headers [Authorization $'Bearer (open $token_file | get access_token)'] $'https://embed.gog.com/account/gameDetails/($gameid).json'
