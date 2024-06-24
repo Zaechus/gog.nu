@@ -100,7 +100,7 @@ def "main download" [
 
 # get the folder name for a setup file
 def "main name" [file: string] {
-  $file | str replace -ra '^(gog|setup)_|_v\d+_.*$|_\d+\-\d+_|_\d*\..*|_?\(.*\)|\.(bin|exe)$|_\d{1}[_.].*\.sh$' '' | str replace -a '_' '-' | str replace -ra '-+' '-'
+  $file | str replace -ra '^(gog|setup)_|_v\d+_.*$|_\d+\-\d+_|_\d*\..*|_[12]\d{7}|_?\(.*\)|\.(bin|exe)$|_\d{1}[_.].*\.sh$' '' | str replace -a '_' '-' | str replace -ra '-+' '-'
 }
 
 # extract a gog installer with innoextract
@@ -148,7 +148,7 @@ def "main clean" [dir?: string] {
     mv app/* ./
     rm -rf app
   }
-  rm -rf Customer_support.htm DOSBOX __redist commonappdata dosbox*conf gfw_high*.ico gog.ico goggame-*.* goglog.ini support.ico webcache.zip
+  rm -rf *EULA*.doc* Customer_support.htm DOSBOX __redist commonappdata dosbox*conf gfw_high*.ico gog.ico goggame-*.* goglog.ini Support.ico support.ico webcache.zip
 
   if ('__support/app' | path exists) {
     rm -f __support/app/dosbox*.conf
