@@ -48,7 +48,8 @@ def "main download" [
   --id: string # install using the game id
   -n: int # install the nth game result
   --skip-linux # skip checking for linux files
-  --all # also install patch files if available
+  --patch # download latest patch file
+  --patches # download all patch files
 ] {
   let gameid = if $id != null {
     $id
@@ -71,15 +72,18 @@ def "main download" [
   for download in $response.downloads {
     if $download.0 == 'English' {
       let urls = if not $skip_linux and 'linux' in $download.1 {
-        $download.1.linux.manualUrl
+        $download.1.linux
       } else if 'windows' in $download.1 {
-        if $all {
-          $download.1.windows.manualUrl
-        } else {
-          $download.1.windows | where manualUrl !~ 'patch[0-9]$' | get manualUrl
-        }
+        $download.1.windows
       } else {
         continue
+      }
+      let urls = if $patch {
+        $urls | where manualUrl =~ 'patch[0-9]$' | get manualUrl | last
+      } else if $patches {
+        $urls | where manualUrl =~ 'patch[0-9]$' | get manualUrl
+      } else {
+        $urls | where manualUrl !~ 'patch[0-9]$' | get manualUrl
       }
 
       for url in $urls {
