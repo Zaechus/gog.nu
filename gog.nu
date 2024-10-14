@@ -57,7 +57,7 @@ def "main download" [
     let results = main search ($search | str join ' ')
 
     if $n != null {
-      $results.id.$n
+      $results.id | get $n
     } else if ($results | length) > 1 {
       return $results
     } else if ($results | length) == 0 {
@@ -89,7 +89,7 @@ def "main download" [
       for url in $urls {
         print $'Downloading https://gog.com($url)'
         let location = http head --redirect-mode manual --headers [Authorization $'Bearer (open $token_file | get access_token)'] $'https://embed.gog.com($url)' | where name == "location" | get 0.value
-        let filename = $location | url parse | get params.path | path basename
+        let filename = $location | url parse | get path | path basename
         if not ($filename | path exists) {
           let tmpfile = $'($filename).tmp'
           http get --headers [Authorization $'Bearer (open $token_file | get access_token)'] $location | save -fp $tmpfile
