@@ -161,7 +161,7 @@ def "main clean" [dir?: string] {
   if ('__support/save' | path exists) {
     mv_support_files __support/save
   }
-  rm -rf __support
+  rm -rf __support DOSBox
 }
 
 def main [] {
