@@ -112,6 +112,10 @@ def "main extract" [
   file: string
   --no-clean # Do not clean extracted files
 ] {
+  if not ($file | path exists) {
+    error make -u {msg: $'($file) does not exist!'}
+  }
+
   let dir = main name $file
   innoextract -gmp --default-language en-US -d $dir $file
   if not $no_clean {
