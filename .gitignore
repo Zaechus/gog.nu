@@ -1,4 +1,5 @@
 .token.json
-*.exe
+*.tmp
 *.sh
+*.exe
 *.bin
