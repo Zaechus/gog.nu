@@ -104,7 +104,7 @@ def "main download" [
 
 # get the folder name for a setup file
 def "main name" [file: string] {
-  $file | str replace -ra '^(gog|setup)_|_v\d+_.*$|_\d+\-\d+_|_\d*\..*|_[12]\d{7}|_?\(.*\)|\.(bin|exe)$|_\d{1}[_.].*\.sh$' '' | str replace -a '_' '-' | str replace -ra '-+' '-'
+  $file | str replace -ra '^(gog|setup)_|_v\d+_.*$|_\d+\-\d+_|_\d*\..*|_[12]\d{7}|_?\(.*\)|_?%\d+%\d{2}+|\.(bin|exe)$|_\d{1}[_.].*\.sh$' '' | str replace -a '_' '-' | str replace -ra '-+' '-'
 }
 
 # extract a gog installer with innoextract
