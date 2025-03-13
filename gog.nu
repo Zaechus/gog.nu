@@ -89,7 +89,7 @@ def "main download" [
       for url in $urls {
         print $'Downloading https://gog.com($url)'
         let location = http head --redirect-mode manual --headers [Authorization $'Bearer (open $token_file | get access_token)'] $'https://embed.gog.com($url)' | where name == "location" | get 0.value
-        let filename = $location | url parse | get path | path basename
+        let filename = $location | url decode | url parse | get path | path basename
         if not ($filename | path exists) {
           let tmpfile = $'($filename).tmp'
           http get --headers [Authorization $'Bearer (open $token_file | get access_token)'] $location | save -fp $tmpfile
@@ -104,7 +104,7 @@ def "main download" [
 
 # get the folder name for a setup file
 def "main name" [file: string] {
-  $file | str replace -ra '^(gog|setup)_|_v\d+_.*$|_\d+\-\d+_|_\d*\..*|_[12]\d{7}|_?\(.*\)|_?%\d+%\d{2}+|\.(bin|exe)$|_\d{1}[_.].*\.sh$' '' | str replace -a '_' '-' | str replace -ra '-+' '-'
+  $file | str replace -ra '^(gog|setup)_|_v\d+_.*$|_\d+\-\d+_|_\d*\..*|_[12]\d{7}|_?\(.*\)|\.(bin|exe)$|_\d{1}[_.].*\.sh$' '' | str replace -a '_' '-' | str replace -ra '-+' '-'
 }
 
 # extract a gog installer with innoextract
