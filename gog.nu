@@ -39,7 +39,7 @@ def "main search" [...search: string] {
     main token refresh
   }
 
-  return (http get --headers [Authorization $'Bearer (open $token_file | get access_token)'] $'https://embed.gog.com/account/getFilteredProducts?mediaType=1&search=($search | str join " ")' | get products | select id title)
+  return (http get --headers [Authorization $'Bearer (open $token_file | get access_token)'] $'https://embed.gog.com/account/getFilteredProducts?mediaType=1&search=($search | str join " " | url encode)' | get products | select id title)
 }
 
 # download offline installers
@@ -54,7 +54,7 @@ def "main download" [
   let gameid = if $id != null {
     $id
   } else {
-    let results = main search ($search | str join ' ')
+    let results = main search ...$search
 
     if $n != null {
       $results.id | get $n
