@@ -4,7 +4,7 @@ let client_id = "46899977096215655"
 let redirect_uri = "https://embed.gog.com/on_login_success?origin=client" | url encode
 let client_secret = "9d85c43b1482497dbbce61f6e4aa173a433796eeae2ca8c5f6129f2dc4de46d9"
 
-let token_path = $nu.home-path | path join .cache/gog.nu
+let token_path = $nu.home-dir | path join .cache/gog.nu
 let token_file = $token_path | path join .token.json
 
 # get a login code for generating an auth token
