@@ -102,9 +102,21 @@ def "main download" [
   }
 }
 
-# get the folder name for a setup file
+# generate an approximate folder name for a setup file
 def "main name" [file: string] {
-  $file | str replace -ra '^(gog|setup)_|_v\d+_.*$|_\d+\-\d+_|_\d*\..*|_[12]\d{7}|_?\(.*\)|\.(bin|exe)$|_\d{1}[_.].*\.sh$' '' | str replace -a '_' '-' | str replace -ra '-+' '-'
+  $file | str lowercase
+    | str replace -ra '^(gog|patch|setup)_' ''
+    | str replace -ra '_cut_.*' '_cut'
+    | str replace -ra '_en_.*' ''
+    | str replace -ra '_gog(_|-).*' ''
+    | str replace -ra '(_\d+)+(_\d+\w*){2,}(_|\.).*' ''
+    | str replace -ra '_v\d+.*' ''
+    | str replace -ra '_\d{3,}.*' ''
+    | str replace -ra '_?(\d+)?\..*' ''
+    | str replace -ra '\(|\)' ''
+    | str replace -ra 'tm_' '_'
+    | str replace -a '_' '-'
+    | str replace -ra '-+' '-'
 }
 
 # extract a gog installer with innoextract
