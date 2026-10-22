@@ -1,13 +1,13 @@
 #!/usr/bin/env nu
 
-let client_id = "46899977096215655"
+const client_id = "46899977096215655"
+const client_secret = "9d85c43b1482497dbbce61f6e4aa173a433796eeae2ca8c5f6129f2dc4de46d9"
 let redirect_uri = "https://embed.gog.com/on_login_success?origin=client" | url encode
-let client_secret = "9d85c43b1482497dbbce61f6e4aa173a433796eeae2ca8c5f6129f2dc4de46d9"
 
 let token_path = $nu.home-dir | path join .cache/gog.nu
 let token_file = $token_path | path join .token.json
 
-# get a login code for generating an auth token
+# Get a login code for generating an auth token
 def "main login" [] {
   let response_type = "code"
   let layout = "client2"
@@ -15,20 +15,20 @@ def "main login" [] {
   print $'https://auth.gog.com/auth?client_id=($client_id)&redirect_uri=($redirect_uri)&response_type=($response_type)&layout=($layout)'
 }
 
-# generate a new auth token
+# Generate a new auth token
 def "main token new" [code: string] {
   mkdir $token_path
   http get --raw $'https://auth.gog.com/token?client_id=($client_id)&client_secret=($client_secret)&grant_type=authorization_code&code=($code)&redirect_uri=($redirect_uri)' | save -f $token_file
   chmod 600 $token_file
 }
 
-# refresh the auth token
+# Refresh the auth token
 def "main token refresh" [] {
   http get --raw $'https://auth.gog.com/token?client_id=($client_id)&client_secret=($client_secret)&grant_type=refresh_token&refresh_token=(open $token_file | get refresh_token)&redirect_uri=($redirect_uri)' | save -f $token_file
   chmod 600 $token_file
 }
 
-# search games
+# Search games
 def "main search" [...search: string] {
   if not ($token_file | path exists) {
     main login
@@ -42,21 +42,32 @@ def "main search" [...search: string] {
   return (http get --headers [Authorization $'Bearer (open $token_file | get access_token)'] $'https://embed.gog.com/account/getFilteredProducts?mediaType=1&search=($search | str join " " | url encode)' | get products | select id title)
 }
 
-# download offline installers
+# Show information and downloads for a gameid
+def "main show" [gameid: string] {
+  return (http get --headers [Authorization $'Bearer (open $token_file | get access_token)'] $'https://embed.gog.com/account/gameDetails/($gameid).json' | select title cdKey cdKeys downloads extras dlcs)
+}
+
+# Show DLCs for a gameid, if any
+def "main dlcs" [gameid: string] {
+  return (http get --headers [Authorization $'Bearer (open $token_file | get access_token)'] $'https://embed.gog.com/account/gameDetails/($gameid).json' | get dlcs | select title cdKey cdKeys downloads extras dlcs)
+}
+
+# Download offline installers
 def "main download" [
   ...search: string
-  --id: string # install using the game id
-  -n: int # install the nth game result
-  --skip-linux # skip checking for linux files
-  --patch # download latest patch file
-  --patches # download all patch files
+  -n: int # Install the nth game result
+  --extras: range # Download a range of extras files instead
+  --dlc: string = 'none' # Download `'all'` content or `'only'` DLC content
+  --patch # Download all patch files
+  --skip-linux # Skip checking for linux files
 ] {
-  let gameid = if $id != null {
-    $id
+  let gameid = if ($search | first | default "") =~ '\d{10,}' {
+    $search.0
   } else {
     let results = main search ...$search
 
     if $n != null {
+      print $'Downloading `($results.title | get $n)`...'
       $results.id | get $n
     } else if ($results | length) > 1 {
       return $results
@@ -69,40 +80,48 @@ def "main download" [
 
   let response = http get --headers [Authorization $'Bearer (open $token_file | get access_token)'] $'https://embed.gog.com/account/gameDetails/($gameid).json'
 
-  for download in $response.downloads {
-    if $download.0 == 'English' {
-      let urls = if not $skip_linux and 'linux' in $download.1 {
-        $download.1.linux
-      } else if 'windows' in $download.1 {
-        $download.1.windows
+  let urls = if ($extras | describe) == range {
+    let extras = $response.extras | slice $extras
+    print ($extras | select name type size)
+    $extras.manualUrl
+  } else {
+    let downloads = match $dlc {
+      'all' => { $response.downloads | union ($response.dlcs | each {|dlc| $dlc.downloads} | flatten) },
+      'only' => { $response.dlcs | each {|dlc| $dlc.downloads} | flatten },
+      _ => { $response.downloads }
+    }
+    $downloads | where {|x| $x.0 == 'English'} | each {|x|
+      if not $skip_linux and 'linux' in $x.1 {
+        $x.1.linux.manualUrl
+      } else if 'windows' in $x.1 {
+        $x.1.windows.manualUrl
       } else {
-        continue
+        ignore
       }
-      let urls = if $patch {
-        $urls | where manualUrl =~ 'patch[0-9]$' | get manualUrl | last
-      } else if $patches {
-        $urls | where manualUrl =~ 'patch[0-9]$' | get manualUrl
+    } | flatten | where {|x|
+      if $patch {
+        $x =~ 'patch[0-9]$'
       } else {
-        $urls | where manualUrl !~ 'patch[0-9]$' | get manualUrl
+        $x !~ 'patch[0-9]$'
       }
+    }
+  }
 
-      for url in $urls {
-        print $'Downloading https://gog.com($url)'
-        let location = http head --redirect-mode manual --headers [Authorization $'Bearer (open $token_file | get access_token)'] $'https://embed.gog.com($url)' | where name == "location" | get 0.value
-        let filename = $location | url decode | url parse | get path | path basename
-        if not ($filename | path exists) {
-          let tmpfile = $'($filename).tmp'
-          http get --headers [Authorization $'Bearer (open $token_file | get access_token)'] $location | save -fp $tmpfile
-          mv -n $tmpfile $filename
-        } else {
-          print $'($filename) already exists. Skipping.'
-        }
-      }
+  for url in $urls {
+    print $'Downloading https://gog.com($url)'
+    let location = http head --redirect-mode manual --headers [Authorization $'Bearer (open $token_file | get access_token)'] $'https://embed.gog.com($url)' | where name == "location" | get 0.value
+    let filename = $location | url decode | url parse | get path | path basename
+    if not ($filename | path exists) {
+      let tmpfile = $'($filename).tmp'
+      http get --headers [Authorization $'Bearer (open $token_file | get access_token)'] $location | save -fp $tmpfile
+      mv -n $tmpfile $filename
+    } else {
+      print $'($filename) already exists. Skipping.'
     }
   }
 }
 
-# generate an approximate folder name for a setup file
+# Generate an approximate folder name for a setup file
 def "main name" [file: string] {
   $file | str lowercase
     | str replace -ra '^(gog|patch|setup)_' ''
@@ -119,7 +138,7 @@ def "main name" [file: string] {
     | str replace -ra '-+' '-'
 }
 
-# extract a gog installer with innoextract
+# Extract a gog installer with innoextract
 def "main extract" [
   file: string
   --no-clean # Do not clean extracted files
@@ -129,55 +148,47 @@ def "main extract" [
   }
 
   let dir = main name $file
-  innoextract -gmp --default-language en-US -d $dir $file
-  if not $no_clean {
+  if $no_clean {
+    innoextract -g --default-language en-US -d $dir $file
+  } else {
+    innoextract -Lgm --default-language en-US -d $dir $file
     main clean $dir
   }
 }
 
-def mv_support_files [d: string] {
-  let dname = ($d | path split | skip 2 | path join)
-  let found = (ls ./**/* | where type == dir | find -v __support | find -ir $'^($dname)$' | get name)
-  let dest = if ($found | length) > 0 {
-    $found.0
-  } else {
-    $'./($dname)'
-  }
-  for f in (ls $d) {
-    if $f.type == file {
-      mv -v $f.name $dest
-    } else if $f.type == dir {
-      let fname = ($f.name | path split | skip 2 | path join)
-      let ffound = (ls $dest | where type == dir | find -ir $'^($fname)$' | get name)
-      if ($ffound | length) == 0 {
-        mv -v $f.name $dest
-      } else {
-        mv_support_files $f.name
-      }
-    }
-  }
-}
-
-# fix extracted gog game files in a directory
+# Fix extracted gog game files in a directory
+#
+# Mostly useful for DOS games. Might have issues in a Windows game installation or when innoextract is used without the lowercase flag.
 def "main clean" [dir?: string] {
   if $dir != null {
     cd $dir
   }
 
-  if ('app' | path exists) {
-    mv app/* ./
-    rm -rf app
+  let orphans = if ('__support' | path exists) {
+    ls | where name == app | union (ls __support)
+  } else {
+    ls | where name == app
   }
-  rm -rf *EULA*.DOC* *EULA*.doc* Customer_support.htm DOSBOX LICENSE.DOC Support.ico __redist cloud_saves commonappdata dosbox*conf gfw_high*.ico gog.ico goggame-*.* goglog.ini support.ico webcache.zip
+  for d in $orphans {
+    if (ls $d.name | is-empty) {
+      rm -rfv $d.name
+      continue
+    }
+    ls ($d.name)/**/* | sort-by name | each {|f|
+      let newpath = $f.name | str replace $'($d.name)/' ''
+      if $f.type == dir {
+        mkdir -v $newpath
+      } else {
+        mv -uv $f.name $newpath
+      }
+    }
+  }
 
-  if ('__support/app' | path exists) {
-    rm -f __support/app/dosbox*.conf
-    mv_support_files __support/app
+  if (ls | where ($it.name | str starts-with -i 'dosbox') | length) > 0 {
+    rm -rfv __redist __support app commonappdata customer_support.htm dosbox* gfw_high*.ico goggame-* webcache.zip
+  } else {
+    rm -rfv webcache.zip
   }
-  if ('__support/save' | path exists) {
-    mv_support_files __support/save
-  }
-  rm -rf __support DOSBox
 }
 
 def main [] {
