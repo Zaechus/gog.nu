@@ -149,7 +149,7 @@ def "main extract" [
 
   let dir = main name $file
   if $no_clean {
-    innoextract -g --default-language en-US -d $dir $file
+    innoextract -gm --default-language en-US -d $dir $file
   } else {
     innoextract -Lgm --default-language en-US -d $dir $file
     main clean $dir
@@ -164,6 +164,13 @@ def "main clean" [dir?: string] {
     cd $dir
   }
 
+  # fixes games like Quake where everything including __support is inside a single 'app' folder
+  if (ls | length) == (ls | where name == app | length) {
+    mv app/* ./
+    rm app
+  }
+
+  # some DOS games like Dungeon Keeper have essential files in 'app' and '__support/save'
   let orphans = if ('__support' | path exists) {
     ls | where name == app | union (ls __support)
   } else {
@@ -184,8 +191,9 @@ def "main clean" [dir?: string] {
     }
   }
 
+  # remove the garbage but only for DOS games
   if (ls | where ($it.name | str starts-with -i 'dosbox') | length) > 0 {
-    rm -rfv __redist __support app commonappdata customer_support.htm dosbox* gfw_high*.ico goggame-* webcache.zip
+    rm -rfv DOSBOX DOSBox __redist __support app cloud_saves commonappdata customer_support.htm dosbox* gfw_high*.ico goggame-* webcache.zip
   } else {
     rm -rfv webcache.zip
   }
