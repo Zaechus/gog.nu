@@ -133,7 +133,8 @@ def "main name" [file: string] {
     | str replace -ra '_\d{3,}.*' ''
     | str replace -ra '_?(\d+)?\..*' ''
     | str replace -ra '\(|\)' ''
-    | str replace -ra 'tm_' '_'
+    | str replace -a '_s_' 's_'
+    | str replace -a 'tm_' '_'
     | str replace -a '_' '-'
     | str replace -ra '-+' '-'
 }
@@ -193,9 +194,9 @@ def "main clean" [dir?: string] {
 
   # remove the garbage but only for DOS games
   if (ls | where ($it.name | str starts-with -i 'dosbox') | length) > 0 {
-    rm -rfv DOSBOX DOSBox __redist __support app cloud_saves commonappdata customer_support.htm dosbox* gfw_high*.ico goggame-* webcache.zip
+    rm -rfv DOSBOX DOSBox GameuxInstallHelper.dll Support.ico __redist __support app cloud_saves commonappdata customer_support.htm dosbox* gameuxinstallhelper.dll gfw_high*.ico gog.ico goggame-* goggame.dll support.ico webcache.zip
   } else {
-    rm -rfv webcache.zip
+    rm -rfv EULA.txt webcache.zip
   }
 }
 
