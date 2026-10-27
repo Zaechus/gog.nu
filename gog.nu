@@ -142,7 +142,7 @@ def "main name" [file: string] {
 # Extract a gog installer with innoextract
 def "main extract" [
   file: string
-  --no-clean # Do not clean extracted files
+  --no-clean (-n) # Do not clean extracted files
 ] {
   if not ($file | path exists) {
     error make -u {msg: $'($file) does not exist!'}
