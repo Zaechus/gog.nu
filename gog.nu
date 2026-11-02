@@ -140,7 +140,7 @@ def "main name" [file: string] {
 }
 
 # Extract a gog installer with innoextract
-def "main extract" [
+def "main x" [
   file: string
   --no-clean (-n) # Do not clean extracted files
 ] {
@@ -152,7 +152,7 @@ def "main extract" [
   if $no_clean {
     innoextract -gm --default-language en-US -d $dir $file
   } else {
-    innoextract -Lgm --default-language en-US -d $dir $file
+    innoextract -Lgm --language en-US -d $dir $file
     main clean $dir
   }
 }
@@ -196,7 +196,7 @@ def "main clean" [dir?: string] {
   if (ls | where ($it.name | str starts-with -i 'dosbox') | length) > 0 {
     rm -rfv DOSBOX DOSBox GameuxInstallHelper.dll Support.ico __redist __support app cloud_saves commonappdata customer_support.htm dosbox* gameuxinstallhelper.dll gfw_high*.ico gog.ico goggame-* goggame.dll support.ico webcache.zip
   } else {
-    rm -rfv EULA.txt webcache.zip
+    rm -rfv EULA.txt __support app webcache.zip
   }
 }
 
