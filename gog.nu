@@ -113,10 +113,10 @@ def "main download" [
     let filename = $location | url decode | url parse | get path | path basename
     if not ($filename | path exists) {
       let tmpfile = $'($filename).tmp'
-      http get --headers [Authorization $'Bearer (open $token_file | get access_token)'] $location | save -fp $tmpfile
-      mv -n $tmpfile $filename
-    } else {
-      print $'($filename) already exists. Skipping.'
+      if not ($tmpfile | path exists) {
+        http get --headers [Authorization $'Bearer (open $token_file | get access_token)'] $location | save -p $tmpfile
+        mv -n $tmpfile $filename
+      }
     }
   }
 }
