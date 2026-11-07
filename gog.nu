@@ -123,7 +123,7 @@ def "main download" [
 
 # Generate an approximate folder name for a setup file
 def "main name" [file: string] {
-  $file | str lowercase
+  $file | path basename | str lowercase
     | str replace -ra '^(gog|patch|setup)_' ''
     | str replace -ra '_cut_.*' '_cut'
     | str replace -ra '_en_.*' ''
